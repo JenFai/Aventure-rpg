@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mon Aventure RPG – MVP</title>
+  <meta name="description" content="Programme d'évolution personnelle ludique façon RPG – MVP gratuit" />
+  <style>
+    :root{
+      --bg:#faf6ef;          /* beige clair */
+      --ink:#342f2a;         /* brun foncé lisible */
+      --accent:#b97a56;      /* cuivre/terracotta */
+      --accent-2:#3e6b5e;    /* vert forêt */
+      --card:#fff;           /* cartes */
+      --muted:#8a7f77;       /* texte secondaire */
+      --ring: rgba(185, 122, 86, .25);
+    }
+    html,body{margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; color:var(--ink); background:var(--bg);}    
+    a{color:var(--accent-2); text-decoration:none}
+    .container{max-width:980px; margin:0 auto; padding:16px}
+    header{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 0}
+    .brand{font-weight:800; letter-spacing:.3px}
+    .pill{background:#fff; border:1px solid #e7dfd6; padding:6px 10px; border-radius:999px; font-size:14px}
+
+    /* Progress */
+    .progress-wrap{background:#efe7dd; border-radius:12px; padding:10px 12px; display:flex; align-items:center; gap:12px}
+    .bar{flex:1; height:10px; background:#e2d7ca; border-radius:999px; position:relative; overflow:hidden}
+    .bar > span{position:absolute; inset:0 0 0 0; width:0%; background:linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius:999px; transition:width .4s ease}
+    .badge{display:inline-flex; align-items:center; gap:8px; background:#fff; border:1px solid #e7dfd6; padding:8px 12px; border-radius:999px; font-size:14px}
+    .badge .dot{width:10px; height:10px; border-radius:50%; background:#d9c9ba}
+    .badge.done .dot{background:var(--accent-2)}
+
+    /* Map */
+    .map-card{background:var(--card); border:1px solid #eadfce; border-radius:20px; overflow:hidden; box-shadow: 0 10px 20px rgba(0,0,0,.05)}
+    .map-header{padding:16px 16px 0 16px}
+    .map{position:relative;}
+    .map img{display:block; width:100%; height:auto;}
+    .hotspot{position:absolute; display:flex; align-items:center; justify-content:center; padding:8px 10px; border-radius:12px; font-weight:600; backdrop-filter: blur(2px);}
+    .hotspot a{display:block; padding:10px 12px; border-radius:10px; background:rgba(255,255,255,.85); border:1px solid #e6dbc8; color:var(--ink)}
+    .hotspot a:hover{box-shadow:0 0 0 6px var(--ring)}
+
+    /* approximate positions (percentages of the image) */
+    .hs-forest{left:8%; top:16%}
+    .hs-valley{right:8%; top:18%}
+    .hs-city{left:10%; bottom:12%}
+    .hs-tower{right:8%; bottom:12%}
+
+    /* Section pages */
+    section{scroll-margin-top:12px}
+    .card{background:var(--card); border:1px solid #eadfce; border-radius:18px; padding:16px; box-shadow: 0 8px 16px rgba(0,0,0,.04)}
+    .grid{display:grid; grid-template-columns:1fr; gap:16px}
+    @media (min-width: 820px){ .grid{grid-template-columns:1.2fr .8fr} }
+    h1{font-size:28px; margin:0 0 6px}
+    h2{font-size:22px; margin:12px 0 8px}
+    h3{font-size:18px; margin:10px 0 8px}
+    p{line-height:1.55}
+    .muted{color:var(--muted)}
+    .btn{display:inline-block; padding:12px 16px; border-radius:12px; border:1px solid #e7dfd6; background:#fff; cursor:pointer; font-weight:600}
+    .btn.primary{background:linear-gradient(90deg, var(--accent), var(--accent-2)); color:#fff; border:none}
+    .btn:active{transform:translateY(1px)}
+    .steps{padding-left:18px}
+    .steps li{margin:8px 0}
+    .chip{display:inline-block; padding:4px 10px; border-radius:999px; background:#efe7dd; font-size:13px; margin-right:6px}
+    .status{font-size:14px}
+    .ok{color:var(--accent-2); font-weight:700}
+    .warn{color:#9f4b32; font-weight:700}
+    .footer{color:var(--muted); font-size:12px; text-align:center; padding:30px 8px}
+
+    .inline-note{font-size:13px; background:#fff7ea; border:1px solid #f1e4cf; padding:8px 10px; border-radius:12px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">🎒 Mon Aventure RPG</div>
+      <nav>
+        <a class="pill" href="#home">Carte</a>
+        <a class="pill" href="#forest">Forêt</a>
+        <a class="pill" href="#valley">Vallée</a>
+        <a class="pill" href="#city">Cité</a>
+        <a class="pill" href="#tower">Tour</a>
+      </nav>
+    </header>
+
+    <!-- Progress -->
+    <div class="progress-wrap card" id="progress">
+      <div class="badge" id="b-forest"><span class="dot"></span> Forêt</div>
+      <div class="badge" id="b-valley"><span class="dot"></span> Vallée</div>
+      <div class="badge" id="b-city"><span class="dot"></span> Cité</div>
+      <div class="badge" id="b-tower"><span class="dot"></span> Tour</div>
+      <div class="bar" aria-label="progression totale"><span id="progressBar"></span></div>
+      <button class="btn" id="reset">Réinitialiser</button>
+    </div>
+
+    <!-- Map -->
+    <section id="home" class="map-card" aria-label="Carte du Monde">
+      <div class="map-header">
+        <h1>Carte du Monde</h1>
+        <p class="muted">Clique une zone pour ouvrir la mission. Astuce : ajoute cette page à l'écran d'accueil de ton téléphone.</p>
+        <div class="inline-note">🖼️ Place ici ton image <strong>map.jpg</strong> (la carte que tu as déjà) dans le même dossier que ce fichier. Les zones sont déjà prêtes.</div>
+      </div>
+      <div class="map">
+        <img src="map.jpg" alt="Carte du Monde – Forêt, Vallée, Cité, Tour"/>
+        <div class="hotspot hs-forest"><a href="#forest">🌿 Forêt de Vitalité</a></div>
+        <div class="hotspot hs-valley"><a href="#valley">🍎 Vallée des Saveurs</a></div>
+        <div class="hotspot hs-city"><a href="#city">🎨 Cité des Muses</a></div>
+        <div class="hotspot hs-tower"><a href="#tower">📚 Tour de l’Ordre</a></div>
+      </div>
+    </section>
+
+    <!-- Quest Sections -->
+    <section id="forest" class="card">
+      <div class="grid">
+        <div>
+          <h2>🌿 Forêt de Vitalité — Mission : <em>Le Sentier de l’Aube</em></h2>
+          <p class="muted">Boss : <strong>L’Inertie</strong> · Récompense : <span class="chip">+100 XP</span> <span class="chip">Badge Forêt</span></p>
+          <p>Au lever du jour, la forêt s’éveille. Pour franchir le portail moussu, tu dois raviver ton énergie. Ta mission : <strong>15 minutes de mouvement</strong> pour lancer la journée.</p>
+          <h3>Étapes</h3>
+          <ol class="steps">
+            <li>5 min d’échauffement doux (mobilité, étirements).</li>
+            <li>10 min d’effort au choix : vélo elliptique, yoga léger, marche active à la maison.</li>
+            <li>1 selfie mental : note en 1 phrase ce que tu ressens après (bloc-notes du tel).</li>
+          </ol>
+          <p class="inline-note">Option validation : ajoute le lien de ton Google Form ici si tu veux collecter les validations.</p>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px">
+            <button class="btn primary" data-complete="forest">Valider la mission</button>
+            <a class="btn" href="#home">↩︎ Retour à la carte</a>
+          </div>
+          <p class="status" id="s-forest"></p>
+        </div>
+        <aside>
+          <h3>Conseils rapides</h3>
+          <ul>
+            <li>Prépare ta tenue la veille.</li>
+            <li>Musique motivante → 1 playlist de 15 min.</li>
+            <li>Si douleur genoux : privilégie elliptique ou yoga.</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <section id="valley" class="card">
+      <div class="grid">
+        <div>
+          <h2>🍎 Vallée des Saveurs — Mission : <em>Le Marché de Liora</em></h2>
+          <p class="muted">Boss : <strong>Le Grignoteur</strong> · Récompense : <span class="chip">+100 XP</span> <span class="chip">Badge Vallée</span></p>
+          <p>Dans la vallée, l’odeur des herbes fraîches guide les voyageuses. Ta mission : <strong>planifier 3 jours de repas végétariens simples</strong> pour éteindre les fringales.</p>
+          <h3>Étapes</h3>
+          <ol class="steps">
+            <li>Choisis 3 recettes (ex : bowl lentilles, curry pois chiches, pâtes aux légumes + feta).</li>
+            <li>Fais une <strong>liste de courses</strong> ultra-courte (15 ingrédients max).</li>
+            <li>Prépare 1 base le soir (riz ou lentilles pour 2 jours).</li>
+          </ol>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px">
+            <button class="btn primary" data-complete="valley">Valider la mission</button>
+            <a class="btn" href="#home">↩︎ Retour à la carte</a>
+          </div>
+          <p class="status" id="s-valley"></p>
+        </div>
+        <aside>
+          <h3>Astuce gain de temps</h3>
+          <p>Double les quantités → 1 cuisson = 2 repas. Utilise le <em>batch</em> de légumes rôtis pour plusieurs plats.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="city" class="card">
+      <div class="grid">
+        <div>
+          <h2>🎨 Cité des Muses — Mission : <em>L’Atelier Éclair</em></h2>
+          <p class="muted">Boss : <strong>La Voix Critique</strong> · Récompense : <span class="chip">+100 XP</span> <span class="chip">Badge Cité</span></p>
+          <p>Les ruelles pavées mènent à un atelier lumineux. Ta mission : <strong>créer une mini-œuvre en 20 minutes</strong> (dessin, écriture, collage, photo).</p>
+          <h3>Étapes</h3>
+          <ol class="steps">
+            <li>Choisis un support (papier A4, carnet, app de dessin).</li>
+            <li>Définis une contrainte fun (ex : seulement 2 couleurs, thème « vent »).</li>
+            <li>Partage à une amie ou garde-le pour toi mais prends une photo.</li>
+          </ol>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px">
+            <button class="btn primary" data-complete="city">Valider la mission</button>
+            <a class="btn" href="#home">↩︎ Retour à la carte</a>
+          </div>
+          <p class="status" id="s-city"></p>
+        </div>
+        <aside>
+          <h3>Déblocage créatif</h3>
+          <p>Minuteur 20 min. Interdit d’effacer. Le but = <em>finir</em>, pas « parfait ».</p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="tower" class="card">
+      <div class="grid">
+        <div>
+          <h2>📚 Tour de l’Ordre — Mission : <em>La Clepsydre</em></h2>
+          <p class="muted">Boss : <strong>La Dispersion</strong> · Récompense : <span class="chip">+100 XP</span> <span class="chip">Badge Tour</span></p>
+          <p>Au sommet, une horloge ancienne bat le tempo. Ta mission : <strong>organiser les prochaines 24 heures</strong> en 3 blocs de temps.</p>
+          <h3>Étapes</h3>
+          <ol class="steps">
+            <li>Note 1 objectif <em>réaliste</em> par bloc : Matin / Après-midi / Soir.</li>
+            <li>Bloque 2 moments recharge (10 min respiration + 15 min plaisir).</li>
+            <li>Prépare 1 micro-récompense si tout est coché.</li>
+          </ol>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px">
+            <button class="btn primary" data-complete="tower">Valider la mission</button>
+            <a class="btn" href="#home">↩︎ Retour à la carte</a>
+          </div>
+          <p class="status" id="s-tower"></p>
+        </div>
+        <aside>
+          <h3>Focus</h3>
+          <p>Si tout semble urgent, rien ne l’est. Choisis 3 tâches « impact 80/20 ».</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="card" id="boss" style="display:none">
+      <h2>⭐ Boss Final Débloqué — <em>La Semaine Héroïque</em></h2>
+      <p>Bravo ! Tu as terminé les 4 missions. Dans les 7 prochains jours, réplique chacune des 4 en version courte (10 min) et coche-les 4 jours sur 7. Si tu réussis → <strong>Badge Héros du Mois</strong>.</p>
+      <a class="btn" href="#home">Retour à la carte</a>
+    </section>
+
+    <p class="footer">MVP gratuit — Tu peux cloner et adapter. 🌿 Conseil : ajoute un Google Form pour collecter les emails et valider les missions.</p>
+  </div>
+
+<script>
+  // --- Progress Storage ---
+  const DEFAULT_STATE = {forest:false, valley:false, city:false, tower:false};
+  const key = 'rpg_progress_v1';
+  const $ = (sel)=>document.querySelector(sel);
+
+  function load(){
+    try{ return JSON.parse(localStorage.getItem(key)) || {...DEFAULT_STATE}; }
+    catch(e){ return {...DEFAULT_STATE}; }
+  }
+  function save(state){ localStorage.setItem(key, JSON.stringify(state)); }
+
+  function setStatus(id, done){
+    const el = $('#s-'+id);
+    if(!el) return;
+    el.innerHTML = done ? '✔︎ Mission validée — <span class="ok">Bravo !</span>' : '<span class="warn">Mission non encore validée</span>';
+  }
+
+  function updateUI(){
+    const state = load();
+    const total = Object.values(state).filter(Boolean).length;
+    $('#progressBar').style.width = (total/4*100)+'%';
+    ['forest','valley','city','tower'].forEach(k=>{
+      const b = $('#b-'+k); b.classList.toggle('done', !!state[k]);
+      setStatus(k, !!state[k]);
+    });
+    // Boss unlock
+    const boss = document.getElementById('boss');
+    boss.style.display = (total===4) ? 'block' : 'none';
+  }
+
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-complete]');
+    if(!btn) return;
+    const k = btn.getAttribute('data-complete');
+    const state = load();
+    state[k] = true; save(state); updateUI();
+  });
+
+  document.getElementById('reset').addEventListener('click', ()=>{ save({...DEFAULT_STATE}); updateUI(); });
+
+  updateUI();
+</script>
+</body>
+</html>
